@@ -34,8 +34,9 @@ public class ReconnectTask extends Thread {
 	public void run() {
 		try {
 			while (!isInterrupted()) {
-				if (handler.isConnected())
+				if (handler.isConnected){
 					continue;
+				}
 				Log.d(TAG, "Trying to reconnect in " + trying() + " seconds");
 				Thread.sleep((long) trying() * 1000L);
 				handler.trying();

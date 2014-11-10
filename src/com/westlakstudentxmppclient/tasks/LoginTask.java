@@ -59,7 +59,8 @@ public class LoginTask implements Runnable {
 		if (!isAuthenticated()) {
 			try {
 				connection.login(username, password, XMPP_RESOURCE_NAME);
-				Log.i(TAG, "Login successfully");
+				Log.i(TAG, "Login successfully! " + "username :" + username + ";password:" + password);
+				
 
 				if (connListener != null) {
 					connection.addConnectionListener(connListener);
@@ -90,6 +91,22 @@ public class LoginTask implements Runnable {
 						&& errorMessage
 								.contains(INVALID_CREDENTIALS_ERROR_CODE)) {
 					mHandler.sendEmptyMessage(XmppHandlerManager.ALREADY_ONLINE);
+					return;
+				}
+				
+				INVALID_CREDENTIALS_ERROR_CODE = "403";
+				if (errorMessage != null
+						&& errorMessage
+								.contains(INVALID_CREDENTIALS_ERROR_CODE)) {
+					mHandler.sendEmptyMessage(XmppHandlerManager.PASSWORD_ERROR);
+					return;
+				}
+				
+				INVALID_CREDENTIALS_ERROR_CODE = "407";
+				if (errorMessage != null
+						&& errorMessage
+								.contains(INVALID_CREDENTIALS_ERROR_CODE)) {
+					mHandler.sendEmptyMessage(XmppHandlerManager.USERNAME_ERROR);
 					return;
 				}
 				

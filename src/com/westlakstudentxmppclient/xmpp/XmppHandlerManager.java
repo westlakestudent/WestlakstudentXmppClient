@@ -17,6 +17,7 @@ import com.westlakstudentxmppclient.utils.WestlakestudentDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -46,6 +47,8 @@ public class XmppHandlerManager extends Handler {
 	public static final int NO_REGISTER = 10;
 	public static final int REGISTER_FAILRE = 11;
 	public static final int ALREADY_ONLINE = 12;
+	public static final int PASSWORD_ERROR = 13;
+	public static final int USERNAME_ERROR = 14;
 
 	private int flag = REGISTERTASK;
 
@@ -60,6 +63,7 @@ public class XmppHandlerManager extends Handler {
 	private String username = null;
 	private String password = null;
 	private Context context = null;
+	public boolean isConnected = false;
 
 	private ActivityJumpListener mJumpListener = null;
 
@@ -75,24 +79,23 @@ public class XmppHandlerManager extends Handler {
 		return INSTANCE;
 	}
 
-	private void initialize(){
+	private void initialize() {
 		executorService = Executors.newSingleThreadExecutor();
 	}
-	
+
 	public void registerHandler(Context context) {
 		this.context = context;
 		dialog = new ProgressDialog(context);
 		dialog.setTitle("提示");
 		dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-		
+
 		sharedpref = context.getSharedPreferences(Constants.PREF_NAME,
 				Context.MODE_PRIVATE);
 
-		
 		xmpphost = sharedpref.getString(Constants.XMPPHOST, "");
 		xmppport = sharedpref.getInt(Constants.XMPPPORT, 5222);
 
-		reconnection = new ReconnectTask(this, connectionListener);
+		reconnection = new ReconnectTask(getInstance(), connectionListener);
 	}
 
 	public void startConnectTask(int flag, String username, String password,
@@ -120,8 +123,8 @@ public class XmppHandlerManager extends Handler {
 	}
 
 	private void startRegisterTask(XMPPConnection connection) {
-		executorService.submit(new RegisterTask(this, username, password,
-				sharedpref, connection));
+		executorService.submit(new RegisterTask(getInstance(), username,
+				password, sharedpref, connection));
 	}
 
 	public boolean isConnected() {
@@ -144,6 +147,11 @@ public class XmppHandlerManager extends Handler {
 				reconnection.setTrying(0);
 
 			connection = (XMPPConnection) msg.obj;
+			if (Constants.LOGINED) {
+				startLoginTask(connection);
+				return;
+			}
+
 			if (flag == REGISTERTASK)
 				startRegisterTask(connection);
 			else if (flag == LOGINTASK)
@@ -161,7 +169,7 @@ public class XmppHandlerManager extends Handler {
 			WestlakestudentDialog.show(context, "服务器连接失败!");
 			break;
 		case DUPLICATE_IMEI:
-			WestlakestudentDialog.show(context, "此手机已被注册!");
+			WestlakestudentDialog.show(context, "此帐号已被注册!");
 			break;
 		case REGISTER_FAILRE:
 			WestlakestudentDialog.show(context, "注册失败!");
@@ -170,9 +178,14 @@ public class XmppHandlerManager extends Handler {
 			startLoginTask(connection);
 			break;
 		case LOGIN_SUCCESSFULLY:
+			isConnected = true;
 			dialog.dismiss();
+			Editor editor = sharedpref.edit();
+			editor.putString(Constants.USERNAME, username);
+			editor.putString(Constants.PASSWORD, password);
+			editor.commit();
 			Log.d(TAG, "此处跳转");
-			if (mJumpListener != null)
+			if (mJumpListener != null && !Constants.LOGINED)
 				mJumpListener.jump();
 			break;
 		case DIALOG_DISMISS:
@@ -182,15 +195,38 @@ public class XmppHandlerManager extends Handler {
 			dialog.show();
 			break;
 		case NO_REGISTER:
+			if (Constants.LOGINED)
+				return;
 			dialog.dismiss();
-			WestlakestudentDialog.show(context, "未注册的设备");
+			WestlakestudentDialog.show(context, "未注册的帐号");
 			break;
 		case ALREADY_ONLINE:
+			if (Constants.LOGINED)
+				return;
 			dialog.dismiss();
 			WestlakestudentDialog.show(context, "此帐号已经被登录");
-			connection.disconnect();
+			if (connection != null && connection.isConnected())
+				connection.disconnect();
+			break;
+		case PASSWORD_ERROR:
+			if (Constants.LOGINED)
+				return;
+			dialog.dismiss();
+			WestlakestudentDialog.show(context, "密码错误");
+			if (connection != null && connection.isConnected())
+				connection.disconnect();
+			break;
+		case USERNAME_ERROR:
+			if (Constants.LOGINED)
+				return;
+			dialog.dismiss();
+			WestlakestudentDialog.show(context, "帐号错误");
+			if (connection != null && connection.isConnected())
+				connection.disconnect();
 			break;
 		case LOGIN_ERROR:
+			if (Constants.LOGINED)
+				return;
 			dialog.dismiss();
 			String errorMsg = (String) msg.obj;
 			WestlakestudentDialog.show(context, errorMsg);
@@ -232,6 +268,7 @@ public class XmppHandlerManager extends Handler {
 			if (connection != null && connection.isConnected()) {
 				connection.disconnect();
 			}
+			isConnected = false;
 			startReconnectionThread();
 		}
 

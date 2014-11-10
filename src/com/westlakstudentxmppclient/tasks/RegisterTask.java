@@ -31,7 +31,6 @@ public class RegisterTask implements Runnable {
 	private XMPPConnection connection = null;
 	private String username = null;
 	private String password = null;
-	private String imei = null;
 	private XmppHandlerManager mHandler = null;
 	private SharedPreferences sharePref = null;
 
@@ -43,7 +42,6 @@ public class RegisterTask implements Runnable {
 		this.connection = connection;
 		sharePref = sharedpref;
 		
-		imei = sharePref.getString(Constants.IMEI, "A00000000F");
 	}
 
 	private boolean isConnected(){
@@ -61,7 +59,6 @@ public class RegisterTask implements Runnable {
 			registration.setType(IQ.Type.SET);
 			registration.addAttribute("username", username);
 			registration.addAttribute("password", password);
-			registration.addAttribute("imei", imei);
 			connection.sendPacket(registration);
 		}
 	}
