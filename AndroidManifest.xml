@@ -12,7 +12,7 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@android:style/Theme" >
+        android:theme="@android:style/Theme" android:name=".activity.WestlakestudentXmppApp">
         <activity
             android:name="com.westlakstudentxmppclient.activity.LoginActivity"
             android:label="@string/app_name" >
