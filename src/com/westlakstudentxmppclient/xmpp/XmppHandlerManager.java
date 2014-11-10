@@ -244,6 +244,13 @@ public class XmppHandlerManager extends Handler {
 		}
 	}
 
+	public void close() {
+		if (isConnected()) {
+			connection.disconnect();
+			Log.d(TAG, "connection disconnected");
+		}
+	}
+
 	private ConnectionListener connectionListener = new ConnectionListener() {
 
 		@Override
